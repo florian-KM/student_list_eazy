@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  website:
+    container_name: website
+    image: php:apache
+    ports:
+      - "80:80"
+    volumes:
+      - /website:/var/www/html
+    environment:
+      USERNAME: toto
+      PASSWORD: python
+    networks:
+      - student_network
+
+  api:
+    container_name: API
+    build:
+      context: ./simple_api
+      dockerfile: Dockerfile
+    volumes:
+      - ./simple_api/student_age.json:/data/student_age.json
+    depends_on:
+      - website
+#    ports:
+#      - "5000:5000"
+    networks:
+      - student_network
+
+networks:
+  student_network:

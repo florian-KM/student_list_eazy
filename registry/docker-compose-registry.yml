@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  registry-srv:
+    image: registry:2.8.2
+    restart: always
+    ports:
+      - 5010:5000
+    volumes:
+      - ./registry/storage:/var/lib/registry
+      - ./config.yml:/etc/docker/registry/config.yml:ro
+      - ./registry/htpasswd:/etc/docker/registry/htpasswd
+    container_name: registry-srv
+    environment:
+      - REGISTRY_STORAGE_DELETE_ENABLED=true
+    networks:
+      - registry
+     
+  registry-ui:
+    image: joxit/docker-registry-ui:1.5-static
+    restart: always
+    ports:
+      - 5001:80
+    environment:
+      - REGISTRY_URL=http://registry-srv:5000
+      - DELETE_IMAGES=true
+      - SINGLE_REGISTRY=true
+      - REGISTRY_TITLE=demo
+      - SHOW_CONTENT_DIGEST=true
+      - SHOW_CATALOG_NB_TAGS=true
+      - CATALOG_MIN_BRANCHES=1
+      - CATALOG_MAX_BRANCHES=1
+      - TAGLIST_PAGE_SIZE=10
+      - REGISTRY_SECURED=true
+      - CATALOG_ELEMENTS_LIMIT=10
+    container_name: registry-ui
+    networks:
+      - registry
+      
+networks:
+  registry:
+    driver: bridge
+    
+    
