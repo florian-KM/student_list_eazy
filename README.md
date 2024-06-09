@@ -1,81 +1,3 @@
-# SOLUTION
-
-## le clone du projet est la premiere étape avant tout
-
-1- Changer de répertoire et construire l'image du conteneur api :
-- cd .student_list
-- docker build ./simple_api/ -t student_list-api
-- images docker
-
-2- Création d'un réseau
-- docker network create student_network
-- docker network ls
-
-3- lancez le conteneur de l'api avec ces paramètres
-
--- présentation du fichier Dockerfile
-[Dockerfile](simple_api%2FDockerfile)
-
-### - Buider l'image avec la commade
-```bash 
-4 - Pour faire le run lancez la commande 
-docker run -d -v ./simple_api/student_age.json:/data/student_age.json -p 5000:5000 student_list```
-
-5 - verifions que notre container fonctionne bien
-```bash 
-curl -u toto:python -X GET http://localhost:5000/pozos/api/v1.0/get_student_ages
-```
-
-### - resultat attendu
-![resultat.png](images%2Fresultat.png)
-
-
-# Deployment
-
-#### pour créer notre docker compose nous pouvons directement le convertir grace au site composerize.com pour avoir notre infrastructure as code dans un fichier docker-compose.yml.
-
--- présentation du fichier Dockerfile
-[docker-compose.yml](docker-compose.yml)
-
-1- Lancer l'application (api + webapp) :
-Comme nous avons déjà créé l'image de l'application, il suffit maintenant de lancer :
-
-    - docker-compose up -d
-    
-    l'argument -d  est utilisé pour le mode détaché.
-
-### - resultat attendu
-![resultat_docker_compose.png](images%2Fresultat_docker_compose.png)
-
-
-2- Création d'un regsitre privé
-J'ai utilisé registry:2.8.2 image pour le registre, et joxit/docker-registry-ui:static pour son interface graphique et j'ai ajouté un fichier de config pour personaliser ma configuration.
-
-     - docker-compose -f docker-compose-registry.yml up -d
-     - ouvrez votre navigateur en utilisant le port 5010
-
-
-3- Pousser une image sur le registre et tester l'interface utilisateur
-Vous devez le renommer avant:
-
-- docker login localhost:5010
-- docker image tag student_list-api localhost:5010/student_list-api
-- images docker
-- docker image push localhost:5010/student_list-api
-
-recharger le navigateur pour voir l'image poussée
-
-### Resultat attendu
-
-vous devriez avoir un resultat similaire à celui-ci
-![Capture.png](images%2FCapture.png)
-
-
-
-
-
-
-
 
 # Student List Application
 
@@ -186,28 +108,72 @@ networks:
    ```bash
    docker-compose up -d
    ```
-   ![Screenshot: Docker Compose Up](path_to_screenshot_docker_compose_up)
-
-3. **Vérifier le déploiement** : Accédez à l'application web et cliquez sur le bouton "List Student" pour vérifier que la liste des étudiants apparaît.
-   ![Screenshot: Application Web](path_to_screenshot_web_app)
+  
+3. **Vérifier le déploiement** : verifier que les containers ont bien démarré.
+   ![test.png](images%2Ftest.png)
 
 ## Docker Registry
 ### Déploiement d'un Registre Privé Docker
-1. **Déployer un registre privé** : Lancez un conteneur de registre Docker pour stocker vos images en privé.
+1. **Déployer un registre privé** : Lancez les conteneurs de registre Docker pour stocker vos images en privé.
    ```bash
-   docker run -d -p 5000:5000 --restart=always --name registry registry:2
+    docker-compose -f docker-compose-registry.yml up -d
    ```
-   ![Screenshot: Docker Registry](path_to_screenshot_docker_registry)
+   J'ai utilisé registry:2.8.2 image pour le registre, et joxit/docker-registry-ui:static pour son interface graphique et j'ai ajouté un fichier de config pour personaliser ma configuration.
+   ```bash
+    version: '3.8'
+    services:
+        registry-srv:
+        image: registry:2.8.2
+        restart: always
+        ports:
+        - 5010:5000
+        volumes:
+          - ./registry/storage:/var/lib/registry
+          - ./config.yml:/etc/docker/registry/config.yml:ro
+          - ./registry/htpasswd:/etc/docker/registry/htpasswd
+          container_name: registry-srv
+          environment:
+          - REGISTRY_STORAGE_DELETE_ENABLED=true
+          networks:
+          - registry
+        
+        registry-ui:
+        image: joxit/docker-registry-ui:1.5-static
+        restart: always
+        ports:
+        - 5001:80
+        environment:
+          - REGISTRY_URL=http://registry-srv:5000
+          - DELETE_IMAGES=true
+          - SINGLE_REGISTRY=true
+          - REGISTRY_TITLE=demo
+          - SHOW_CONTENT_DIGEST=true
+          - SHOW_CATALOG_NB_TAGS=true
+          - CATALOG_MIN_BRANCHES=1
+          - CATALOG_MAX_BRANCHES=1
+          - TAGLIST_PAGE_SIZE=10
+          - REGISTRY_SECURED=true
+          - CATALOG_ELEMENTS_LIMIT=10
+          container_name: registry-ui
+          networks:
+          - registry
+        
+        networks:
+        registry:
+        driver: bridge
+
+   ``` 
 
 2. **Pousser l'image dans le registre** : Taguez l'image et poussez-la dans le registre privé.
-   ```bash
-   docker tag student_api localhost:5000/student_api
-   docker push localhost:5000/student_api
-   ```
-   ![Screenshot: Push Image](path_to_screenshot_push_image)
+    Pousser une image sur le registre et tester l'interface utilisateur
+   Vous devez le renommer avant:
 
-## Conclusion
-Nous avons dockerisé avec succès l'application "student_list" et démontré comment Docker peut améliorer l'agilité, la scalabilité et l'automatisation des déploiements. L'application est maintenant plus facile à gérer et à déployer, répondant ainsi aux besoins de POZOS.
-
-## Captures d'Écran
-Ajoutez des captures d'écran pertinentes montrant les différentes étapes, y compris la construction de l'image, le test de l'API, le déploiement avec Docker Compose, et l'utilisation du registre privé Docker.
+  ```bash
+        - docker login localhost:5010
+        - docker image tag student_list-api localhost:5010/student_list-api
+        - images docker
+        - docker image push localhost:5010/student_list-api 
+ 
+  ```
+vous devriez avoir un resultat similaire à celui-ci
+![Capture.png](images%2FCapture.png)
